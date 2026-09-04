@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgriSense AI – Smart Farming Assistant</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2316a34a'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/></svg>" />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React and ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel Standalone for JSX interpretation in single file -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            agri: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- SVG ICONS (Self-contained zero-dependency) ---
+    const IconSprout = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 22v-9m0 0a5 5 0 005-5c0-2-1-3-1-3s-1 1-1 3a5 5 0 01-3 5m0 0a5 5 0 01-5-5c0-2 1-3 1-3s1 1 1 3a5 5 0 003 5z"/></svg>
+    );
+    const IconDashboard = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+    );
+    const IconWeather = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414M16.95 16.95l1.414 1.414M7.05 7.05L5.636 5.636M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    );
+    const IconBot = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4m-4 5h.01m8 0h.01"/></svg>
+    );
+    const IconScan = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2m-10 0H5a2 2 0 01-2-2v-2m4-5a3 3 0 106 0 3 3 0 00-6 0z"/></svg>
+    );
+    const IconZones = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+    );
+    const IconCpu = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3m6-3v3m-6 17v3m6-3v3M1 9h3m-3 6h3m17-6h3m-3 6h3"/></svg>
+    );
+    const IconBell = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+    );
+    const IconHistory = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    );
+    const IconSettings = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+    );
+    const IconDroplet = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    );
+    const IconTemp = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+    );
+    const IconWind = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9.59 4.59A2 2 0 1111 8H2m10.59 11.41A2 2 0 1014 16H2m15.73-8.27A2.5 2.5 0 1119.5 12H2"/></svg>
+    );
+    const IconSparkles = ({ className = "w-4 h-4" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+    );
+    const IconRefresh = ({ className = "w-4 h-4" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    );
+    const IconAlert = ({ className = "w-4 h-4" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    );
+    const IconCheck = ({ className = "w-4 h-4" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+    );
+    const IconArrowRight = ({ className = "w-4 h-4" }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+    );
+
+    // --- INITIAL MOCK DATA ---
+    const initialFarm = {
+      farmerName: 'Ramesh Patel',
+      farmName: 'Green Valley Farm',
+      location: 'Nashik, Maharashtra',
+      crop: 'Tomato',
+      area: '4.5 Acres',
+      growthStage: 'Flowering',
+      zonesCount: 3,
+      overallHealth: 'Good'
+    };
+
+    const initialZonesList = [
+      { id: 'zone-1', name: 'Zone 1 (North Field)', crop: 'Tomato', soilMoisture: 42, temperature: 30, humidity: 68, status: 'Good', riskLevel: 'Low', lastUpdated: 'Just now', irrigationStatus: 'Idle' },
+      { id: 'zone-2', name: 'Zone 2 (East Slope)', crop: 'Tomato', soilMoisture: 21, temperature: 34, humidity: 55, status: 'Attention Required', riskLevel: 'High', lastUpdated: '1 min ago', irrigationStatus: 'Recommended' },
+      { id: 'zone-3', name: 'Zone 3 (South Terrace)', crop: 'Tomato', soilMoisture: 39, temperature: 31, humidity: 65, status: 'Good', riskLevel: 'Low', lastUpdated: '2 mins ago', irrigationStatus: 'Idle' }
+    ];
+
+    const initialAlertsList = [
+      { id: 'alert-1', severity: 'WARNING', title: 'Zone 2 soil moisture is critically low (21%)', zone: 'Zone 2 (East Slope)', explanation: 'Soil moisture has dropped below the 25% threshold for Tomato flowering stage. Crop may experience transpiration stress.', suggestedAction: 'Inspect Zone 2 drip lateral valve and consider activating supplementary irrigation.', timestamp: '15 mins ago', isRead: false },
+      { id: 'alert-2', severity: 'INFO', title: 'Precipitation expected within 24–36 hours', zone: 'Farm-wide', explanation: 'Regional weather forecast models indicate a 70% chance of showers tomorrow afternoon (approx 20mm rainfall).', suggestedAction: 'Avoid applying water-soluble fertilizers or overhead irrigation today.', timestamp: '1 hour ago', isRead: false },
+      { id: 'alert-3', severity: 'WARNING', title: 'High temperature risk (34°C) in afternoon hours', zone: 'Zone 2 (East Slope)', explanation: 'Afternoon canopy temperature exceeded 33°C. Tomato flowers are vulnerable to pollen abortion under heat.', suggestedAction: 'Monitor flower retention and evaluate micro-sprinkler misting.', timestamp: '2 hours ago', isRead: true },
+      { id: 'alert-4', severity: 'INFO', title: 'Crop health leaf check recommended', zone: 'Zone 1 (North Field)', explanation: 'Mild humidity accumulation recorded overnight. Ideal conditions for early screening of fungal leaf spot symptoms.', suggestedAction: 'Capture a leaf photo using Crop Health camera tool for automated AI screening.', timestamp: 'Yesterday', isRead: true }
+    ];
+
+    const mockWeather = {
+      currentTemp: 32,
+      humidity: 64,
+      rainProbability: 20,
+      windSpeed: 14,
+      condition: 'Partly Cloudy',
+      uvIndex: 7,
+      summary: 'Warm and partly cloudy afternoon. Light breeze favorable for field work.'
+    };
+
+    const mockForecasts = [
+      { day: 'Today', date: 'Sep 04', maxTemp: 32, minTemp: 23, rainProbability: 20, condition: 'Partly Cloudy', humidity: 64, wind: 14 },
+      { day: 'Tomorrow', date: 'Sep 05', maxTemp: 30, minTemp: 22, rainProbability: 70, condition: 'Rainy', humidity: 82, wind: 19 },
+      { day: 'Saturday', date: 'Sep 06', maxTemp: 28, minTemp: 21, rainProbability: 60, condition: 'Thunderstorm', humidity: 86, wind: 24 },
+      { day: 'Sunday', date: 'Sep 07', maxTemp: 31, minTemp: 22, rainProbability: 30, condition: 'Cloudy', humidity: 71, wind: 12 },
+      { day: 'Monday', date: 'Sep 08', maxTemp: 33, minTemp: 24, rainProbability: 10, condition: 'Sunny', humidity: 58, wind: 11 }
+    ];
+
+    const sampleImages = [
+      { id: 'sample-disease', label: 'Leaf Spot / Blight', type: 'disease', url: 'https://images.unsplash.com/photo-1592417817098-8f3d6910a451?auto=format&fit=crop&w=600&q=80', hint: 'disease' },
+      { id: 'sample-healthy', label: 'Healthy Tomato Leaf', type: 'healthy', url: 'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?auto=format&fit=crop&w=600&q=80', hint: 'healthy' },
+      { id: 'sample-pest', label: 'Pest Foliage Damage', type: 'pest', url: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80', hint: 'pest' },
+      { id: 'sample-nutrient', label: 'Nutrient Chlorosis', type: 'nutrient', url: 'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=600&q=80', hint: 'nutrient' }
+    ];
+
+    // --- MAIN REACT APPLICATION COMPONENT ---
+    function App() {
+      const [activePage, setActivePage] = useState('landing');
+      const [farm, setFarm] = useState(initialFarm);
+      const [zones, setZones] = useState(initialZonesList);
+      const [alerts, setAlerts] = useState(initialAlertsList);
+      const [isDemoMode, setIsDemoMode] = useState(true);
+      const [selectedImage, setSelectedImage] = useState(sampleImages[0].url);
+      const [sampleHint, setSampleHint] = useState('disease');
+      const [isAnalyzing, setIsAnalyzing] = useState(false);
+      const [analysisResult, setAnalysisResult] = useState(null);
+      const [chartTimeframe, setChartTimeframe] = useState('24h');
+      const [isSimulating, setIsSimulating] = useState(false);
+      const [telemetryLogs, setTelemetryLogs] = useState([
+        { time: '11:20 AM', node: 'esp32-node-1', zone: 'zone-1', moisture: 42, temp: 30, hum: 68 },
+        { time: '11:22 AM', node: 'esp32-node-2', zone: 'zone-2', moisture: 21, temp: 34, hum: 55 }
+      ]);
+
+      // Dynamic rule-based AI recommendations based on state
+      const recommendations = useMemo(() => {
+        const recs = [];
+        zones.forEach(zone => {
+          if (zone.soilMoisture < 25 && zone.temperature > 32) {
+            recs.push({
+              id: `rec-water-${zone.id}`,
+              priority: 'HIGH',
+              category: 'WATER_STRESS',
+              title: `${zone.name} – Possible Water Stress`,
+              zone: zone.name,
+              reason: `Soil moisture is low (${zone.soilMoisture}%) and temperature is elevated (${zone.temperature}°C).`,
+              recommendation: `Check irrigation requirement for ${zone.name}. Avoid unnecessary irrigation if significant rainfall is expected.`
+            });
+          }
+        });
+
+        if (mockWeather.rainProbability >= 60) {
+          recs.push({
+            id: 'rec-rain',
+            priority: 'MEDIUM',
+            category: 'OVER_IRRIGATION',
+            title: 'Weather Risk – Heavy Rainfall Possibility',
+            reason: `High probability of upcoming rain (${mockWeather.rainProbability}%) detected.`,
+            recommendation: 'Monitor drainage and avoid unnecessary irrigation before expected rainfall.'
+          });
+        }
+
+        recs.push({
+          id: 'rec-health',
+          priority: 'LOW',
+          category: 'CROP_HEALTH',
+          title: 'Crop Health Advisory – Leaf Condition Screening',
+          reason: 'Foliage in flowering stage requires frequent inspection for pest & moisture balance.',
+          recommendation: 'Inspect affected plants closely and consider confirming the cause with a local agricultural expert before treatment.'
+        });
+
+        return recs;
+      }, [zones]);
+
+      // Simulate incoming ESP32 sensor telemetry
+      const handleSimulateSensor = () => {
+        setIsSimulating(true);
+        const updated = zones.map((z, idx) => {
+          if (idx === 1) {
+            // vary zone 2
+            const deltaM = Math.round((Math.random() * 4 - 2));
+            const deltaT = Math.round((Math.random() * 1.4 - 0.7) * 10) / 10;
+            const newM = Math.max(15, Math.min(60, z.soilMoisture + deltaM));
+            const newT = Math.round((z.temperature + deltaT) * 10) / 10;
+            return {
+              ...z,
+              soilMoisture: newM,
+              temperature: newT,
+              status: newM < 25 ? 'Attention Required' : 'Good',
+              lastUpdated: 'Just now'
+            };
+          }
+          return z;
+        });
+        setZones(updated);
+
+        const newLog = {
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          node: 'esp32-node-2',
+          zone: 'zone-2',
+          moisture: updated[1].soilMoisture,
+          temp: updated[1].temperature,
+          hum: updated[1].humidity
+        };
+        setTelemetryLogs(prev => [newLog, ...prev.slice(0, 8)]);
+
+        setTimeout(() => setIsSimulating(false), 500);
+      };
+
+      // Simulate a new alert trigger
+      const handleSimulateAlert = () => {
+        const newAl = {
+          id: `al-${Date.now()}`,
+          severity: 'WARNING',
+          title: `Simulated Alert: Moisture drop in Zone 2 (${Math.floor(Math.random()*5 + 18)}%)`,
+          zone: 'Zone 2 (East Slope)',
+          explanation: 'Edge sensor telemetry threshold triggered by sudden soil drying.',
+          suggestedAction: 'Check drip valve lines or verify probe contact.',
+          timestamp: 'Just now',
+          isRead: false
+        };
+        setAlerts(prev => [newAl, ...prev]);
+      };
+
+      // Simulate AI Image Analysis
+      const handleAnalyzeImage = () => {
+        setIsAnalyzing(true);
+        setTimeout(() => {
+          let category = 'Disease symptoms';
+          let status = 'Possible Crop Stress Detected';
+          let conf = 82;
+          let rec = 'Inspect nearby plants and verify symptoms before taking treatment action. Consider consulting an agricultural extension officer.';
+
+          if (sampleHint === 'healthy') {
+            category = 'Healthy';
+            status = 'Foliage Appears Healthy';
+            conf = 94;
+            rec = 'Maintain regular moisture monitoring and good sanitation practices.';
+          } else if (sampleHint === 'pest') {
+            category = 'Pest damage';
+            status = 'Possible Pest Foliage Damage';
+            conf = 87;
+            rec = 'Inspect underside of leaves for larvae or eggs. Deploy sticky pheromone traps.';
+          } else if (sampleHint === 'nutrient') {
+            category = 'Nutrient stress';
+            status = 'Possible Nutrient Chlorosis';
+            conf = 79;
+            rec = 'Check soil pH and evaluate micronutrient foliar spray with a local agronomist.';
+          }
+
+          setAnalysisResult({
+            category,
+            status,
+            confidence: conf,
+            recommendation: rec,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          });
+          setIsAnalyzing(false);
+        }, 1200);
+      };
+
+      const unreadAlerts = alerts.filter(a => !a.isRead).length;
+
+      // Navigation Items list
+      const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: IconDashboard },
+        { id: 'weather', label: 'Weather', icon: IconWeather },
+        { id: 'ai-recommendations', label: 'AI Assistant', icon: IconBot },
+        { id: 'crop-health', label: 'Crop Health', icon: IconScan },
+        { id: 'zones', label: 'Farm Zones', icon: IconZones },
+        { id: 'sensors', label: 'Sensors (IoT)', icon: IconCpu },
+        { id: 'alerts', label: 'Alerts', icon: IconBell, badge: unreadAlerts },
+        { id: 'history', label: 'Farm History', icon: IconHistory },
+        { id: 'settings', label: 'Settings', icon: IconSettings }
+      ];
+
+      // --- PAGE: LANDING ---
+      if (activePage === 'landing') {
+        return (
+          <div className="min-h-screen bg-slate-50 flex flex-col">
+            <header className="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <IconSprout className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="font-extrabold text-lg text-slate-900 tracking-tight">
+                    AgriSense <span className="text-emerald-600">AI</span>
+                  </h1>
+                  <span className="text-[11px] text-slate-500 font-medium">Smart Farming Assistant</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setActivePage('auth')} className="text-sm font-semibold text-slate-700 hover:text-emerald-700 px-3 py-2">
+                  Sign In
+                </button>
+                <button onClick={() => setActivePage('dashboard')} className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-sm rounded-xl hover:bg-emerald-100 flex items-center gap-1.5 shadow-xs">
+                  <IconSparkles className="w-4 h-4 text-emerald-600" />
+                  <span>View Demo</span>
+                </button>
+                <button onClick={() => setActivePage('setup')} className="px-4 py-2 bg-emerald-600 text-white font-semibold text-sm rounded-xl hover:bg-emerald-700 shadow-sm flex items-center gap-1">
+                  <span>Get Started</span>
+                  <IconArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </header>
+
+            {/* Hero */}
+            <section className="pt-16 pb-24 text-center px-4 bg-gradient-to-b from-emerald-50/60 via-white to-slate-50">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-800 text-xs font-semibold mb-6">
+                <IconSparkles className="w-4 h-4 text-emerald-600" />
+                <span>Smart India Hackathon Prototype • Precision Agro-Tech</span>
+              </div>
+              <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight max-w-4xl mx-auto">
+                AgriSense <span className="text-emerald-600">AI</span>
+                <span className="block text-2xl sm:text-4xl font-bold text-slate-700 mt-3">Smart Farming Assistant</span>
+              </h1>
+              <p className="mt-5 text-xl font-medium text-emerald-800 italic max-w-2xl mx-auto">
+                "Sense your farm. Understand its condition. Make better decisions."
+              </p>
+              <p className="mt-4 text-slate-600 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+                AgriSense AI combines IoT sensor data, weather information, crop details and AI-powered analysis to provide practical farm-level recommendations.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                <button onClick={() => setActivePage('setup')} className="px-7 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center gap-2">
+                  <span>Get Started</span>
+                  <IconArrowRight className="w-4 h-4" />
+                </button>
+                <button onClick={() => setActivePage('dashboard')} className="px-7 py-3.5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-sm sm:text-base rounded-xl border border-slate-300 shadow-sm transition-all flex items-center gap-2">
+                  <IconSparkles className="w-4 h-4 text-emerald-600" />
+                  <span>View Demo (Instant Access)</span>
+                </button>
+              </div>
+
+              {/* Simple Flow Graphic */}
+              <div className="mt-14 max-w-4xl mx-auto p-6 bg-white rounded-3xl border border-slate-200 shadow-sm">
+                <p className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Core System Architecture Flow</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center mx-auto mb-2"><IconCpu /></div>
+                    <span className="font-bold text-xs text-slate-900 block">1. Sensors</span>
+                    <span className="text-[11px] text-slate-500">ESP32 + Moisture & Temp</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center mx-auto mb-2"><IconBot /></div>
+                    <span className="font-bold text-xs text-slate-900 block">2. AI Engine</span>
+                    <span className="text-[11px] text-slate-500">Decision-Support Rules</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center mx-auto mb-2"><IconAlert /></div>
+                    <span className="font-bold text-xs text-slate-900 block">3. Smart Advice</span>
+                    <span className="text-[11px] text-slate-500">Watering & Disease Alerts</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center mx-auto mb-2"><IconCheck /></div>
+                    <span className="font-bold text-xs text-slate-900 block">4. Farmer</span>
+                    <span className="text-[11px] text-slate-500">Final Decision Maker</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="mt-auto bg-slate-900 text-slate-400 py-8 px-6 text-xs text-center border-t border-slate-800">
+              <p>AgriSense AI • Precision Agriculture & Decision Support Prototype for SIH Demonstration</p>
+            </footer>
+          </div>
+        );
+      }
+
+      // --- PAGE: AUTH ---
+      if (activePage === 'auth') {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-slate-50 to-slate-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200 p-8">
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mx-auto mb-3"><IconSprout className="w-7 h-7"/></div>
+                <h2 className="text-2xl font-extrabold text-slate-900">AgriSense <span className="text-emerald-600">AI</span></h2>
+                <p className="text-xs text-slate-500 mt-1">Sign in to monitor your farm</p>
+              </div>
+
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-center mb-6">
+                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">Prototype Demo Access</span>
+                <p className="text-xs text-slate-600 mb-3">Jump straight into the live dashboard with sample sensors.</p>
+                <button onClick={() => setActivePage('dashboard')} className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm">
+                  <span>Continue with Demo</span>
+                  <IconArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); setActivePage('dashboard'); }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+                  <input type="email" defaultValue="farmer@agrisense.ai" required className="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                  <input type="password" defaultValue="password" required className="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 py-2.5 bg-slate-900 text-white font-semibold text-sm rounded-xl hover:bg-slate-800">
+                    Login
+                  </button>
+                  <button type="submit" className="flex-1 py-2.5 bg-slate-100 text-slate-800 font-semibold text-sm rounded-xl hover:bg-slate-200 border border-slate-200">
+                    Create Account
+                  </button>
+                </div>
+              </form>
+              <div className="mt-6 text-center">
+                <button onClick={() => setActivePage('landing')} className="text-xs text-slate-400 hover:text-slate-600">← Back to Landing</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // --- PAGE: FARM SETUP ---
+      if (activePage === 'setup') {
+        return (
+          <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+            <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl border border-slate-200 p-8 space-y-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto mb-2"><IconSprout className="w-7 h-7"/></div>
+                <h2 className="text-2xl font-extrabold text-slate-900">Configure Your Farm</h2>
+                <p className="text-xs text-slate-500 mt-1">Input field information to initialize your smart farm dashboard</p>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); setActivePage('dashboard'); }} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Farmer Name</label>
+                    <input type="text" value={farm.farmerName} onChange={(e)=>setFarm({...farm, farmerName: e.target.value})} required className="w-full p-2.5 rounded-xl border border-slate-300 text-sm" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Farm Name</label>
+                    <input type="text" value={farm.farmName} onChange={(e)=>setFarm({...farm, farmName: e.target.value})} required className="w-full p-2.5 rounded-xl border border-slate-300 text-sm" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Farm Location</label>
+                    <input type="text" value={farm.location} onChange={(e)=>setFarm({...farm, location: e.target.value})} required className="w-full p-2.5 rounded-xl border border-slate-300 text-sm" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Farm Area</label>
+                    <input type="text" value={farm.area} onChange={(e)=>setFarm({...farm, area: e.target.value})} required className="w-full p-2.5 rounded-xl border border-slate-300 text-sm" />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Primary Crop</label>
+                    <select value={farm.crop} onChange={(e)=>setFarm({...farm, crop: e.target.value})} className="w-full p-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                      <option>Rice</option><option>Tomato</option><option>Maize</option><option>Groundnut</option><option>Cotton</option><option>Banana</option><option>Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Growth Stage</label>
+                    <select value={farm.growthStage} onChange={(e)=>setFarm({...farm, growthStage: e.target.value})} className="w-full p-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                      <option>Seedling</option><option>Vegetative</option><option>Flowering</option><option>Fruiting</option><option>Maturity</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex justify-between font-semibold text-slate-800 mb-1">
+                    <span>Number of Zones:</span>
+                    <span className="text-emerald-700 font-bold">{farm.zonesCount} Zones</span>
+                  </div>
+                  <input type="range" min="1" max="6" value={farm.zonesCount} onChange={(e)=>setFarm({...farm, zonesCount: parseInt(e.target.value)})} className="w-full accent-emerald-600" />
+                </div>
+
+                <button type="submit" className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2">
+                  <span>Create Farm Dashboard</span>
+                  <IconArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      // --- AUTHENTICATED DASHBOARD LAYOUT ---
+      return (
+        <div className="flex h-screen overflow-hidden bg-slate-50">
+          {/* Desktop Sidebar */}
+          <aside className="w-64 bg-slate-900 text-slate-300 hidden lg:flex flex-col h-screen border-r border-slate-800 select-none">
+            <div className="p-5 border-b border-slate-800 flex items-center gap-3 cursor-pointer" onClick={() => setActivePage('landing')}>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <IconSprout className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="font-bold text-white text-base leading-tight">AgriSense <span className="text-emerald-400">AI</span></h1>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Smart Farm Assistant</p>
+              </div>
+            </div>
+
+            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activePage === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActivePage(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      isActive ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge > 0 && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="p-4 border-t border-slate-800 bg-slate-950/60">
+              <button onClick={() => setActivePage('setup')} className="w-full py-2 px-3 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium border border-slate-700">
+                + Configure New Farm
+              </button>
+            </div>
+          </aside>
+
+          {/* Main Area */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            {/* Header */}
+            <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-sm md:text-base flex items-center gap-1.5">
+                      <IconSprout className="w-4 h-4 text-emerald-600" />
+                      {farm.farmName}
+                    </span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {farm.crop} • {farm.growthStage}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-400 hidden sm:inline">{farm.location} • {farm.area}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isDemoMode && (
+                  <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                    Demo Mode
+                  </span>
+                )}
+
+                <button onClick={handleSimulateSensor} title="Simulate incoming ESP32 data" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200">
+                  <IconRefresh className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Simulate Sensor</span>
+                </button>
+
+                <button onClick={handleSimulateAlert} title="Simulate risk alert" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200">
+                  <IconAlert className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="hidden sm:inline">Simulate Alert</span>
+                </button>
+
+                <button onClick={() => { setFarm(initialFarm); setZones(initialZonesList); setActivePage('dashboard'); }} className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+                  <IconSparkles className="w-3.5 h-3.5" />
+                  <span>Load Demo</span>
+                </button>
+
+                <button onClick={() => setActivePage('alerts')} className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                  <IconBell className="w-5 h-5" />
+                  {unreadAlerts > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadAlerts}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </header>
+
+            {/* Content Body */}
+            <main className="flex-1 p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full">
+              {/* === VIEW 1: DASHBOARD === */}
+              {activePage === 'dashboard' && (
+                <div className="space-y-6">
+                  {/* Top Farm Banner */}
+                  <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-800 via-emerald-900 to-slate-900 text-white shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                      <span className="text-emerald-300 text-xs font-bold uppercase tracking-wider">Smart Farming Assistant • Real-Time</span>
+                      <h2 className="text-2xl md:text-3xl font-extrabold mt-1">Good Morning, {farm.farmerName}</h2>
+                      <p className="text-sm text-emerald-100 mt-1">
+                        Farm: <strong>{farm.farmName}</strong> • Crop: <strong>{farm.crop}</strong> • Growth Stage: <strong>{farm.growthStage}</strong>
+                      </p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20">
+                      <span className="text-xs text-slate-300 block uppercase font-medium">Overall Farm Status</span>
+                      <span className="text-lg font-bold text-white">Farm Health: {farm.overallHealth}</span>
+                    </div>
+                  </div>
+
+                  {/* 3 Main Sensor KPI Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-5 rounded-2xl bg-white border border-blue-200 shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold uppercase text-slate-400">Soil Moisture</span>
+                        <div className="p-2 bg-blue-100 text-blue-700 rounded-xl"><IconDroplet className="w-5 h-5"/></div>
+                      </div>
+                      <div className="mt-2 text-3xl font-extrabold text-slate-900">38%</div>
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">Moderate</span>
+                        <span className="text-slate-400">Ideal: 35-50%</span>
+                      </div>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-white border border-amber-200 shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold uppercase text-slate-400">Canopy Temperature</span>
+                        <div className="p-2 bg-amber-100 text-amber-700 rounded-xl"><IconTemp className="w-5 h-5"/></div>
+                      </div>
+                      <div className="mt-2 text-3xl font-extrabold text-slate-900">31°C</div>
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Normal</span>
+                        <span className="text-slate-400">Optimal flowering</span>
+                      </div>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-white border border-emerald-200 shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold uppercase text-slate-400">Relative Humidity</span>
+                        <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl"><IconWind className="w-5 h-5"/></div>
+                      </div>
+                      <div className="mt-2 text-3xl font-extrabold text-slate-900">68%</div>
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Normal</span>
+                        <span className="text-slate-400">Aeration good</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Zone Cards */}
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
+                      <IconZones className="w-4 h-4 text-emerald-600" />
+                      <span>Farm Zone Conditions</span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {zones.map((zone) => (
+                        <div key={zone.id} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-bold text-slate-900 text-sm">{zone.name}</h4>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
+                              zone.status === 'Attention Required' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              {zone.status}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                            <div className="p-2 bg-slate-50 rounded-xl">
+                              <span className="text-slate-400 block">Moisture</span>
+                              <span className={`font-bold text-base ${zone.soilMoisture < 25 ? 'text-rose-600' : 'text-slate-900'}`}>{zone.soilMoisture}%</span>
+                            </div>
+                            <div className="p-2 bg-slate-50 rounded-xl">
+                              <span className="text-slate-400 block">Temp</span>
+                              <span className="font-bold text-base text-slate-900">{zone.temperature}°C</span>
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                            <span>Irrigation: <strong>{zone.irrigationStatus}</strong></span>
+                            <button onClick={()=>alert(`Valve actuated for ${zone.name}`)} className="text-emerald-700 font-semibold hover:underline">
+                              Trigger Drip →
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Interactive Chart */}
+                  <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100">
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-base">Field Sensor Trends Over Time</h3>
+                        <p className="text-xs text-slate-400">Soil moisture, temperature and humidity continuously tracked</p>
+                      </div>
+                      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                        {['24h', '7d', '30d'].map((tf) => (
+                          <button key={tf} onClick={()=>setChartTimeframe(tf)} className={`px-3 py-1 rounded-lg ${chartTimeframe===tf ? 'bg-emerald-600 text-white' : 'text-slate-600'}`}>
+                            {tf === '24h' ? '24 Hours' : tf === '7d' ? '7 Days' : '30 Days'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 h-52 flex items-end gap-2 sm:gap-4 justify-between pt-8 px-2 border-b border-slate-100">
+                      {[42, 38, 35, 30, 28, 24, 21, 26, 32, 38, 41, 39].map((val, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                          <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity font-bold">{val}%</span>
+                          <div className="w-full max-w-[28px] bg-gradient-to-t from-blue-600 to-emerald-400 rounded-t-lg transition-all" style={{ height: `${val * 1.8}px` }} />
+                          <span className="text-[10px] text-slate-400 font-mono">{i * 2}:00</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex justify-center gap-6 text-xs text-slate-500 font-medium">
+                      <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-600 rounded-full" /> Soil Moisture Trend</span>
+                      <span className="flex items-center gap-1"><span className="w-3 h-3 bg-amber-500 rounded-full" /> Optimal Range (35-50%)</span>
+                    </div>
+                  </div>
+
+                  {/* AI Recommendations Preview */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                          <IconBot className="w-5 h-5 text-emerald-600" />
+                          <span>AI Farm Assistant</span>
+                        </h3>
+                        <button onClick={()=>setActivePage('ai-recommendations')} className="text-xs text-emerald-700 font-semibold">View All →</button>
+                      </div>
+                      {recommendations.slice(0, 2).map((rec) => (
+                        <div key={rec.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                          <div className="flex justify-between font-bold text-slate-900">
+                            <span>{rec.title}</span>
+                            <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full text-[10px]">{rec.priority}</span>
+                          </div>
+                          <p className="text-slate-600"><strong>Reason:</strong> {rec.reason}</p>
+                          <p className="text-emerald-800 font-medium bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                            <strong>Recommendation:</strong> {rec.recommendation}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                          <IconAlert className="w-5 h-5 text-amber-600" />
+                          <span>Recent Farm Alerts</span>
+                        </h3>
+                        <button onClick={()=>setActivePage('alerts')} className="text-xs text-emerald-700 font-semibold">View All →</button>
+                      </div>
+                      {alerts.slice(0, 2).map((al) => (
+                        <div key={al.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                          <div className="flex justify-between font-bold text-slate-900">
+                            <span>{al.title}</span>
+                            <span className="text-[10px] text-slate-400">{al.timestamp}</span>
+                          </div>
+                          <p className="text-slate-600">{al.explanation}</p>
+                          <span className="text-emerald-700 block font-semibold">Action: {al.suggestedAction}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 2: WEATHER === */}
+              {activePage === 'weather' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                      <IconWeather className="w-7 h-7 text-sky-600" />
+                      Weather & Agro-Meteorology
+                    </h2>
+                    <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 text-xs rounded-xl font-medium">
+                      Weather data shown in prototype mode.
+                    </span>
+                  </div>
+
+                  <div className="p-6 rounded-3xl bg-gradient-to-r from-sky-600 to-indigo-800 text-white shadow-md flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div>
+                      <span className="text-sky-200 text-xs font-bold uppercase tracking-wider">Current Conditions • {farm.location}</span>
+                      <div className="text-5xl font-extrabold mt-1">{mockWeather.currentTemp}°C</div>
+                      <div className="text-lg font-semibold text-sky-100">{mockWeather.condition}</div>
+                      <p className="text-xs text-sky-200 mt-2 max-w-md">{mockWeather.summary}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 bg-white/10 backdrop-blur rounded-xl">Rain Probability: <strong className="block text-base">{mockWeather.rainProbability}%</strong></div>
+                      <div className="p-3 bg-white/10 backdrop-blur rounded-xl">Relative Humidity: <strong className="block text-base">{mockWeather.humidity}%</strong></div>
+                      <div className="p-3 bg-white/10 backdrop-blur rounded-xl">Wind Speed: <strong className="block text-base">{mockWeather.windSpeed} km/h</strong></div>
+                      <div className="p-3 bg-white/10 backdrop-blur rounded-xl">UV Index: <strong className="block text-base">{mockWeather.uvIndex} (High)</strong></div>
+                    </div>
+                  </div>
+
+                  {/* Weather Risk */}
+                  <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+                    <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase">
+                      Weather Risk: Moderate Rain Risk
+                    </span>
+                    <h3 className="font-bold text-slate-900 text-base">Rain is expected tomorrow (70% probability).</h3>
+                    <p className="text-xs text-slate-600">Check irrigation requirements before watering. Delaying irrigation for 24 hours avoids water logging and preserves soil nutrients.</p>
+                  </div>
+
+                  {/* 5-day cards */}
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base mb-3">5-Day Upcoming Forecast</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                      {mockForecasts.map((f) => (
+                        <div key={f.day} className="p-4 bg-white rounded-2xl border border-slate-200 text-center space-y-2 shadow-xs">
+                          <span className="font-bold text-sm text-slate-900 block">{f.day}</span>
+                          <span className="text-[11px] text-slate-400">{f.date}</span>
+                          <div className="text-xl font-extrabold text-slate-900 my-1">{f.maxTemp}°C</div>
+                          <span className="text-xs font-semibold text-slate-600 block">{f.condition}</span>
+                          <span className="text-xs text-blue-600 font-bold block">Rain: {f.rainProbability}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 3: AI RECOMMENDATIONS === */}
+              {activePage === 'ai-recommendations' && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                      <IconBot className="w-8 h-8 text-emerald-600" />
+                      AI Farm Assistant
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">Rule-based decision support analyzing sensors, weather, and crop stages.</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                    <strong>Ethical Advisory Notice:</strong> Outputs represent prototype decision-support rules. Always verify in the field and consult with an agricultural extension officer or local expert before treatment.
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {recommendations.map((rec) => (
+                      <div key={rec.id} className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                        <div className="flex justify-between items-start">
+                          <span className="text-xs font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                            {rec.priority} PRIORITY
+                          </span>
+                          <span className="text-xs text-slate-400 font-medium">{rec.zone || 'Farm-wide'}</span>
+                        </div>
+                        <h3 className="text-base font-bold text-slate-900">{rec.title}</h3>
+                        <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-600">
+                          <strong>Reason:</strong> {rec.reason}
+                        </div>
+                        <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 font-medium">
+                          <strong>Recommendation:</strong> {rec.recommendation}
+                        </div>
+                        <span className="text-[11px] text-slate-400 block pt-1">Decision Support Rule • Requires Verification</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 4: CROP HEALTH === */}
+              {activePage === 'crop-health' && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                      <IconScan className="w-8 h-8 text-emerald-600" />
+                      Crop Health & Image Analysis
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">Upload or capture crop photos to screen for disease symptoms, pests, and nutrient stress.</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                    <strong>Disclaimer:</strong> AI image analysis is an early screening tool and should not be treated as a definitive diagnosis.
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Left: Image Picker */}
+                    <div className="lg:col-span-7 p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                      <h3 className="font-bold text-slate-900 text-sm">Leaf Image Preview</h3>
+                      <div className="h-64 rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 relative flex items-center justify-center">
+                        <img src={selectedImage} alt="Foliage preview" className="w-full h-full object-cover" />
+                        {isAnalyzing && (
+                          <div className="absolute inset-0 bg-emerald-900/60 flex flex-col items-center justify-center text-white">
+                            <IconRefresh className="w-8 h-8 animate-spin mb-2" />
+                            <span className="font-bold text-sm">Screening Leaf Features...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Sample Selector */}
+                      <div>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Test Sample Leaves:</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {sampleImages.map((s) => (
+                            <button
+                              key={s.id}
+                              onClick={() => { setSelectedImage(s.url); setSampleHint(s.hint); setAnalysisResult(null); }}
+                              className={`p-2 rounded-xl border text-xs text-left ${
+                                selectedImage === s.url ? 'border-emerald-500 bg-emerald-50 font-bold' : 'border-slate-200 bg-slate-50'
+                              }`}
+                            >
+                              <img src={s.url} alt={s.label} className="w-full h-12 object-cover rounded-lg mb-1" />
+                              <span className="truncate block">{s.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleAnalyzeImage}
+                        disabled={isAnalyzing}
+                        className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2"
+                      >
+                        <IconSparkles className="w-4 h-4" />
+                        <span>Analyze Image</span>
+                      </button>
+                    </div>
+
+                    {/* Right: Output */}
+                    <div className="lg:col-span-5 p-6 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-base pb-3 border-b border-slate-100 mb-4">Diagnostic Screening Result</h3>
+                        {analysisResult ? (
+                          <div className="space-y-4">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              {analysisResult.category}
+                            </span>
+                            <h4 className="text-lg font-extrabold text-slate-900">{analysisResult.status}</h4>
+                            <div className="text-xs font-bold text-emerald-700">Confidence: {analysisResult.confidence}%</div>
+                            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950">
+                              <strong>Recommendation:</strong> {analysisResult.recommendation}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="py-16 text-center text-slate-400 text-xs">
+                            Click "Analyze Image" to run automated screening
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400 block pt-4 border-t border-slate-100">
+                        Confirm results with a local agricultural expert before treatment.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 5: FARM ZONES === */}
+              {activePage === 'zones' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                      <IconZones className="w-7 h-7 text-emerald-600" />
+                      Farm Zones
+                    </h2>
+                    <button onClick={handleSimulateSensor} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold">
+                      Update Zone Values
+                    </button>
+                  </div>
+
+                  {/* Grid Map */}
+                  <div className="p-6 bg-slate-900 text-white rounded-3xl border border-slate-800">
+                    <h3 className="font-bold text-sm text-emerald-400 uppercase tracking-wider mb-4">Spatial Zone Topography</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {zones.map((z) => (
+                        <div key={z.id} className="p-4 bg-white/10 rounded-2xl border border-white/15 space-y-2">
+                          <span className="font-bold text-base block">{z.name}</span>
+                          <div className="text-xs space-y-1 text-slate-300">
+                            <div>Soil Moisture: <strong className="text-white">{z.soilMoisture}%</strong></div>
+                            <div>Temperature: <strong className="text-white">{z.temperature}°C</strong></div>
+                            <div>Humidity: <strong className="text-white">{z.humidity}%</strong></div>
+                            <div>Risk: <strong className={z.riskLevel==='High'?'text-rose-400':'text-emerald-400'}>{z.riskLevel}</strong></div>
+                            <div>Updated: {z.lastUpdated}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 6: SENSORS (IoT) === */}
+              {activePage === 'sensors' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                      <IconCpu className="w-7 h-7 text-emerald-600" />
+                      Sensor Telemetry & IoT Architecture
+                    </h2>
+                    <button onClick={handleSimulateSensor} className="px-3.5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                      <IconRefresh className="w-3.5 h-3.5" />
+                      <span>Simulate Sensor Update</span>
+                    </button>
+                  </div>
+
+                  {/* Flow Diagram */}
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200 text-xs font-semibold flex items-center justify-around text-center">
+                    <span className="p-2 bg-blue-50 text-blue-800 rounded-lg">ESP32 Node</span>
+                    <span>→</span>
+                    <span className="p-2 bg-indigo-50 text-indigo-800 rounded-lg">Backend API / MQTT</span>
+                    <span>→</span>
+                    <span className="p-2 bg-emerald-50 text-emerald-800 rounded-lg">React Dashboard</span>
+                  </div>
+
+                  {/* Nodes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-5 bg-white rounded-3xl border border-slate-200 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-bold text-slate-900">ESP32 Node 1 (Master Gateway)</h4>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">Online</span>
+                      </div>
+                      <div className="text-xs space-y-1 text-slate-600">
+                        <div>Soil Moisture: <strong className="text-emerald-700">Connected (GPIO34)</strong></div>
+                        <div>Temperature: <strong className="text-emerald-700">Connected (DHT22)</strong></div>
+                        <div>Humidity: <strong className="text-emerald-700">Connected (DHT22)</strong></div>
+                        <div>Last data received: <strong>2 minutes ago</strong></div>
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-white rounded-3xl border border-slate-200 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-bold text-slate-900">ESP32 Node 2 (Zone 2 Remote)</h4>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">Online</span>
+                      </div>
+                      <div className="text-xs space-y-1 text-slate-600">
+                        <div>Soil Moisture: <strong className="text-emerald-700">Connected (GPIO34)</strong></div>
+                        <div>Temperature: <strong className="text-emerald-700">Connected (DHT22)</strong></div>
+                        <div>Humidity: <strong className="text-emerald-700">Connected (DHT22)</strong></div>
+                        <div>Last data received: <strong>1 minute ago</strong></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Terminal Log */}
+                  <div className="p-5 bg-slate-950 text-emerald-400 font-mono text-xs rounded-3xl border border-slate-800 space-y-2">
+                    <span className="text-slate-400 block pb-2 border-b border-slate-800">Live JSON MQTT Payload Stream (Prototype Demo)</span>
+                    {telemetryLogs.map((log, i) => (
+                      <div key={i} className="text-slate-300">
+                        <span className="text-slate-500">[{log.time}]</span> {log.node} → {JSON.stringify({ zone: log.zone, moisture: `${log.moisture}%`, temp: `${log.temp}°C`, hum: `${log.hum}%` })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 7: ALERTS === */}
+              {activePage === 'alerts' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                      <IconBell className="w-7 h-7 text-emerald-600" />
+                      Farm Alerts ({alerts.length})
+                    </h2>
+                    <button onClick={handleSimulateAlert} className="px-3.5 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1">
+                      <IconSparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Simulate Alert</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {alerts.map((a) => (
+                      <div key={a.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-xs space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-sm">{a.title}</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">{a.severity}</span>
+                          </div>
+                          <span className="text-slate-400">{a.timestamp}</span>
+                        </div>
+                        <p className="text-slate-600"><strong>Zone:</strong> {a.zone} • {a.explanation}</p>
+                        <div className="p-2.5 bg-emerald-50 text-emerald-900 rounded-xl font-medium">
+                          <strong>Suggested Action:</strong> {a.suggestedAction}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 8: HISTORY === */}
+              {activePage === 'history' && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                    <IconHistory className="w-7 h-7 text-emerald-600" />
+                    Farm History
+                  </h2>
+                  <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-xs space-y-4">
+                    <h3 className="font-bold text-slate-900 text-sm">Agronomic Telemetry Summary Table</h3>
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase">
+                          <th className="py-2">Metric</th>
+                          <th className="py-2">Target</th>
+                          <th className="py-2">Min Recorded</th>
+                          <th className="py-2">Avg Recorded</th>
+                          <th className="py-2">Max Recorded</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        <tr><td className="py-2.5 font-bold">Soil Moisture</td><td>35-50%</td><td className="text-rose-600">21%</td><td>38%</td><td>44%</td></tr>
+                        <tr><td className="py-2.5 font-bold">Temperature</td><td>22-32°C</td><td>22.4°C</td><td>30.8°C</td><td className="text-amber-600">34.2°C</td></tr>
+                        <tr><td className="py-2.5 font-bold">Humidity</td><td>55-75%</td><td>52%</td><td>67%</td><td>82%</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* === VIEW 9: SETTINGS === */}
+              {activePage === 'settings' && (
+                <div className="space-y-6 max-w-2xl">
+                  <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                    <IconSettings className="w-7 h-7 text-emerald-600" />
+                    Settings
+                  </h2>
+                  <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Farmer Profile Name</label>
+                      <input type="text" value={farm.farmerName} onChange={(e)=>setFarm({...farm, farmerName: e.target.value})} className="w-full p-2.5 border rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Farm Name</label>
+                      <input type="text" value={farm.farmName} onChange={(e)=>setFarm({...farm, farmName: e.target.value})} className="w-full p-2.5 border rounded-xl" />
+                    </div>
+                    <div className="pt-2">
+                      <button onClick={()=>alert('Settings saved!')} className="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl">Save Settings</button>
+                    </div>
+                  </div>
+                  <div className="p-6 bg-rose-50 rounded-3xl border border-rose-200 flex justify-between items-center">
+                    <div>
+                      <span className="font-bold text-rose-900 text-sm block">Session Controls</span>
+                      <span className="text-xs text-rose-700">Logout and return to landing page</span>
+                    </div>
+                    <button onClick={()=>setActivePage('landing')} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </main>
+          </div>
+
+          {/* Mobile Bottom Navigation */}
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-3 py-2 flex justify-around">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: IconDashboard },
+              { id: 'weather', label: 'Weather', icon: IconWeather },
+              { id: 'ai-recommendations', label: 'AI', icon: IconBot },
+              { id: 'crop-health', label: 'Health', icon: IconScan },
+              { id: 'alerts', label: 'Alerts', icon: IconBell, badge: unreadAlerts }
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activePage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActivePage(item.id)}
+                  className={`flex flex-col items-center relative py-1 px-2 ${isActive ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-[10px] mt-0.5">{item.label}</span>
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
